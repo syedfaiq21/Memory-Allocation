@@ -1,0 +1,94 @@
+#include <stdio.h>
+#include <stdlib.h>
+#define MEM_SIZE 1000 // total size of memory
+// Memory block structure
+struct memory_block {
+ int id; 
+ int size;
+ struct memory_block *next;
+};
+// Free list
+struct memory_block *f_list = NULL;
+// Function to add a new block
+void add_to_f_list(struct memory_block *block) {
+ block->next = f_list;
+ f_list = block;
+}
+// Function to allocate memory using First-Fit algorithm
+struct memory_block *first_fit_allocate(int size) {
+ struct memory_block *block = f_list;
+ struct memory_block *prev_block = NULL;
+ while (block != NULL) {
+ if (block->size >= size) {
+ // allocate memory
+ if (prev_block != NULL) {
+ prev_block->next = block->next;
+ } else {
+ f_list = block->next;
+ }
+ block->next = NULL;
+ return block;
+ }
+ prev_block = block;
+ block = block->next;
+ }
+return NULL; 
+}
+// Function to deallocate memory
+void deallocate(struct memory_block *block) {
+ add_to_f_list(block);
+}
+// Function to display memory usage
+void display_memory() {
+ struct memory_block *block = f_list;
+ int unused = 0;
+ int fragment = 0;
+ int wasted_blocks = 0;
+ while (block != NULL) {
+ unused += block->size;
+ fragment++;
+ block = block->next;
+ }
+ wasted_blocks = fragment - 1;
+ printf("Unused memory: %d\n", unused);
+ printf("Fragmented memory: %d\n", fragment);
+ printf("Wasted memory blocks: %d\n", wasted_blocks);
+}
+int main() {
+ // initialize free list
+ struct memory_block *block = malloc(sizeof(struct memory_block));
+ block->id = -1;
+ block->size = MEM_SIZE;
+ block->next = NULL;
+ f_list = block;
+ 
+ int time = 0;
+ while (time < 10) {
+ // generate random process
+ int pid = rand() % 10;
+ int size = rand() % 100 + 1;
+ printf("Time: %d, Process %d requests %d bytes of memory\n", 
+time, pid, size);
+ // allocate memory using First-Fit algorithm
+ struct memory_block *allo_block = first_fit_allocate(size);
+ if (allo_block != NULL) {
+ allo_block->id = pid;
+ allo_block->size = size;
+ printf("Memory allocation successful for Process %d\n", 
+pid);
+ } else {
+ printf("Memory allocation failed for Process %d\n", pid);
+ }
+ // deallocate memory
+ if (rand() % 2 == 0 && allo_block != NULL) {
+ printf("Process %d completes and deallocates memory\n", 
+pid);
+ deallocate(allo_block);
+ }
+ // display memory usage
+ printf("Memory usage:\n");
+ display_memory();
+ time++;
+ }
+ return 0;
+}
